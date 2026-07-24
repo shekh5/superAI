@@ -44,6 +44,33 @@ class FinalDecision(BaseModel):
     state: Literal["final"]
     satisfied: bool
     final_summary: NonEmptyText
+    claims: list["AnswerClaim"] = Field(default_factory=list)
+
+
+class AnswerClaim(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: BriefText
+    evidence_chunk_ids: list[str] = Field(default_factory=list, max_length=8)
+
+
+class EvidenceReference(BaseModel):
+    chunk_id: str
+    document_id: str
+    filename: str
+    document_type: str = ""
+    location: str
+    page: Optional[int] = None
+    citation: str
+    excerpt: str
+    retrieval_score: float = 0.0
+
+
+class VerifiedClaim(BaseModel):
+    text: str
+    status: Literal["supported", "evidence_missing"]
+    support_score: float = 0.0
+    evidence_chunk_ids: list[str] = Field(default_factory=list)
 
 
 class CalculatorInput(BaseModel):
@@ -154,6 +181,8 @@ class VerifyResult(BaseModel):
     missing: list[str] = Field(default_factory=list)
     repair_steps: list[PlanStep] = Field(default_factory=list)
     final_summary: str
+    claims: list[VerifiedClaim] = Field(default_factory=list)
+    evidence: list[EvidenceReference] = Field(default_factory=list)
 
 
 class ChainTrace(BaseModel):

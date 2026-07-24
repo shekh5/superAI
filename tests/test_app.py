@@ -27,7 +27,7 @@ def test_root():
 def test_version():
     r = client.get("/version")
     assert r.status_code == 200
-    assert r.json() == {"version": "1.0.0"}
+    assert r.json() == {"version": "1.1.0"}
 
 
 def test_chat_ui():
@@ -67,6 +67,15 @@ def test_chat_ui_has_document_upload_and_session_document_loading():
     assert "/documents`" in r.text
 
 
+def test_chat_ui_has_evidence_workspace_controls():
+    r = client.get("/chat")
+    assert 'id="evidence-panel"' in r.text
+    assert "openEvidence" in r.text
+    assert "verify.evidence" in r.text
+    assert 'id="login-overlay"' in r.text
+    assert "pollDocument" in r.text
+
+
 def test_dashboard_displays_web_search_sources():
     r = client.get("/dashboard")
     assert "call.response_payload.sources" in r.text
@@ -82,6 +91,7 @@ def test_dashboard_displays_prompt_version_telemetry():
     assert "selectedTrace.corrections" in r.text
     assert "selectedTrace.total_corrections" in r.text
     assert "context.document_chunks_included" in r.text
+    assert "selectedTrace.verify.claims" in r.text
 
 
 def test_compose_uses_durable_redis_storage():

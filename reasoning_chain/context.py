@@ -157,6 +157,7 @@ class ContextBundle:
     document_citations: list[str] = field(default_factory=list)
     document_ids: list[str] = field(default_factory=list)
     document_chunks: int = 0
+    document_passages: list[dict] = field(default_factory=list)
 
 
 def estimate_tokens(contents: list[dict], system_instruction: str) -> int:

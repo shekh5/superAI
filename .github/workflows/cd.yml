@@ -82,7 +82,18 @@ jobs:
             export GITHUB_REPOSITORY=${{ needs.build-and-push.outputs.image_name }}
             export GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}"
             export WEATHER_API_KEY="${{ secrets.WEATHER_API_KEY }}"
+            export EVIDENCE_WORKSPACE_ENABLED="${{ secrets.EVIDENCE_WORKSPACE_ENABLED }}"
+            export AUTH_REQUIRED="${{ secrets.AUTH_REQUIRED }}"
+            export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+            export S3_BUCKET="${{ secrets.S3_BUCKET }}"
+            export AWS_REGION="${{ secrets.AWS_REGION }}"
+            export COOKIE_SECURE="${{ secrets.COOKIE_SECURE }}"
+            export BOOTSTRAP_ADMIN_EMAIL="${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}"
+            export BOOTSTRAP_ADMIN_PASSWORD="${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}"
             docker compose -f docker-compose.prod.yml pull
+            if [ "$EVIDENCE_WORKSPACE_ENABLED" = "true" ]; then
+              docker compose -f docker-compose.prod.yml run --rm app alembic upgrade head
+            fi
             docker compose -f docker-compose.prod.yml up -d
             docker image prune -f
 
@@ -124,6 +135,12 @@ jobs:
             export GITHUB_REPOSITORY=${{ needs.build-and-push.outputs.image_name }}
             export GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}"
             export WEATHER_API_KEY="${{ secrets.WEATHER_API_KEY }}"
+            export EVIDENCE_WORKSPACE_ENABLED="${{ secrets.EVIDENCE_WORKSPACE_ENABLED }}"
+            export AUTH_REQUIRED="${{ secrets.AUTH_REQUIRED }}"
+            export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+            export S3_BUCKET="${{ secrets.S3_BUCKET }}"
+            export AWS_REGION="${{ secrets.AWS_REGION }}"
+            export COOKIE_SECURE="${{ secrets.COOKIE_SECURE }}"
             echo "Rolling back to previous stable image..."
             docker pull ghcr.io/${GITHUB_REPOSITORY}:previous-stable
             docker tag ghcr.io/${GITHUB_REPOSITORY}:previous-stable ghcr.io/${GITHUB_REPOSITORY}:latest

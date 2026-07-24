@@ -480,6 +480,51 @@
     .chevron.rotated {
       transform: rotate(180deg);
     }
+
+    .citation-btn {
+      border: 1px solid rgba(99, 102, 241, 0.45);
+      background: rgba(99, 102, 241, 0.15);
+      color: #c7d2fe;
+      border-radius: 6px;
+      padding: 2px 6px;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .claim-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .claim-badge { font-size: 0.68rem; padding: 4px 8px; border-radius: 999px; }
+    .claim-badge.supported { color: #6ee7b7; background: rgba(16,185,129,.14); }
+    .claim-badge.evidence_missing { color: #fcd34d; background: rgba(245,158,11,.14); }
+
+    .evidence-panel {
+      width: 380px;
+      display: none;
+      flex-direction: column;
+      border-left: 1px solid var(--border-color);
+      background: #0f172a;
+    }
+    .evidence-panel.open { display: flex; }
+    .evidence-header { padding: 16px; border-bottom: 1px solid var(--border-color); }
+    .evidence-body { flex: 1; overflow: auto; padding: 16px; }
+    .evidence-frame { width: 100%; height: 100%; border: 0; background: white; }
+    .evidence-preview { white-space: pre-wrap; font-size: .82rem; line-height: 1.55; }
+
+    .login-overlay {
+      position: fixed; inset: 0; z-index: 20; display: none; place-items: center;
+      background: rgba(2,6,23,.88); backdrop-filter: blur(12px);
+    }
+    .login-overlay.open { display: grid; }
+    .login-card { width: min(420px, 92vw); padding: 28px; border-radius: 18px;
+      background: #172033; border: 1px solid var(--border-color); }
+    .login-card h2 { margin-bottom: 8px; }
+    .login-card p { color: var(--text-muted); font-size: .82rem; margin-bottom: 18px; }
+    .login-card form { display: grid; gap: 12px; }
+    .login-error { color: #fca5a5 !important; min-height: 18px; margin: 0 !important; }
+
+    @media (max-width: 900px) {
+      .sidebar { width: 240px; }
+      .evidence-panel { position: absolute; inset: 0 0 0 auto; width: min(92vw, 440px); z-index: 10; }
+    }
   </style>
 </head>
 <body>
@@ -490,6 +535,7 @@
       <div class="sidebar-header">
         <h1>SuperAI</h1>
         <p>Interactive Agent Playground</p>
+        <button id="logout-button" class="citation-btn" style="display:none;margin-top:10px" onclick="logoutUser()">Sign out</button>
       </div>
 
       <!-- Mode Selector -->
@@ -539,6 +585,29 @@
         </form>
       </div>
     </div>
+
+    <aside class="evidence-panel" id="evidence-panel" aria-label="Document evidence">
+      <div class="evidence-header">
+        <button class="citation-btn" style="float:right" onclick="closeEvidence()">Close</button>
+        <strong id="evidence-title">Evidence</strong>
+        <div id="evidence-location" style="color:var(--text-muted);font-size:.72rem;margin-top:4px"></div>
+      </div>
+      <div class="evidence-body" id="evidence-body">Select a citation to inspect its source.</div>
+    </aside>
+  </div>
+
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-card">
+      <h2>Sign in to SuperAI</h2>
+      <p>Use the account created by your workspace administrator.</p>
+      <form id="login-form" onsubmit="loginUser(event)">
+        <input class="text-input" id="login-email" type="email" placeholder="Email" required>
+        <input class="text-input" id="login-password" type="password" placeholder="Password" minlength="8" required>
+        <input class="text-input collapsed" id="new-password" type="password" placeholder="New password (12+ characters)" minlength="12">
+        <button class="submit-btn" id="login-button" type="submit">Sign in</button>
+        <p class="login-error" id="login-error"></p>
+      </form>
+    </div>
   </div>
 
   <script>
@@ -546,6 +615,8 @@
     let currentSessionId = '';
     let sessions = [];
     let activeDocuments = [];
+    let evidenceRegistry = {};
+    let pendingPasswordChange = false;
     const TEMPERATURE_STORAGE_KEY = 'agentic_react_temperature';
     const SUPPORTED_TEMPERATURES = ['0.0', '0.1', '0.4', '0.7'];
 
@@ -662,6 +733,60 @@
       return html.replace(/\n/g, '<br>');
     }
 
+    function renderAnswerText(value, evidence = []) {
+      evidence.forEach(item => { evidenceRegistry[item.chunk_id] = item; });
+      let html = renderMessageText(value);
+      evidence.forEach(item => {
+        const citation = escapeHtml(item.citation);
+        const button = `<button class="citation-btn" data-chunk-id="${escapeHtml(item.chunk_id)}" onclick="openEvidence(this.dataset.chunkId)">${citation}</button>`;
+        html = html.split(citation).join(button);
+      });
+      return html;
+    }
+
+    function renderClaimBadges(claims = []) {
+      if (!claims.length) return '';
+      return `<div class="claim-badges">${claims.map(claim => {
+        const label = claim.status === 'supported' ? 'Supported' : 'Evidence missing';
+        const score = Math.round((claim.support_score || 0) * 100);
+        return `<span class="claim-badge ${escapeHtml(claim.status)}" title="${escapeHtml(claim.text)}">${label} · ${score}%</span>`;
+      }).join('')}</div>`;
+    }
+
+    async function openEvidence(chunkId) {
+      const evidence = evidenceRegistry[chunkId];
+      if (!evidence) return;
+      const panel = document.getElementById('evidence-panel');
+      panel.classList.add('open');
+      document.getElementById('evidence-title').textContent = evidence.filename;
+      document.getElementById('evidence-location').textContent = evidence.location;
+      const body = document.getElementById('evidence-body');
+      body.innerHTML = '<span class="spinner"></span> Loading evidence…';
+      try {
+        if (evidence.document_type === 'pdf') {
+          const response = await fetch(`/chain/documents/${encodeURIComponent(evidence.document_id)}/view-url`);
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.detail || 'Preview unavailable');
+          const page = evidence.page ? `#page=${evidence.page}` : '';
+          body.innerHTML = `<iframe class="evidence-frame" title="PDF evidence"></iframe>`;
+          body.querySelector('iframe').src = data.url + page;
+        } else {
+          const url = `/chain/documents/${encodeURIComponent(evidence.document_id)}/chunks/${encodeURIComponent(chunkId)}/preview`;
+          const response = await fetch(url);
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.detail || 'Preview unavailable');
+          body.innerHTML = '<div class="evidence-preview"></div>';
+          body.firstChild.textContent = data.text;
+        }
+      } catch (error) {
+        body.textContent = `Evidence unavailable: ${error.message}`;
+      }
+    }
+
+    function closeEvidence() {
+      document.getElementById('evidence-panel').classList.remove('open');
+    }
+
     // Start a completely new chat session on the server and client
     async function startNewSession() {
       const sessionId = generateUUID();
@@ -763,7 +888,8 @@
       if (!trace) return null;
       return {
         request_id: trace.request_id,
-        results: trace.results || []
+        results: trace.results || [],
+        verify: trace.verify || null
       };
     }
 
@@ -845,7 +971,15 @@
         messages.forEach(msg => {
           const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : 'N/A';
           const extraHtml = msg.trace ? buildTraceHtml(msg.trace, `trace-${generateUUID()}`) : '';
-          appendMessage(msg.sender, msg.text, timeStr, extraHtml);
+          appendMessage(
+            msg.sender,
+            msg.text,
+            timeStr,
+            extraHtml,
+            false,
+            msg.trace?.verify?.evidence || [],
+            msg.trace?.verify?.claims || []
+          );
         });
       }
     }
@@ -886,10 +1020,14 @@
             activeDocuments.push(data);
             const unitCount = data.unit_count || data.page_count;
             const unitLabel = data.unit_label || 'page';
-            const message = `Document ready: ${data.filename} (${unitCount} ${unitLabel}${unitCount === 1 ? '' : 's'}, ${data.chunk_count} searchable chunks).`;
+            const queued = data.status === 'queued' || data.status === 'processing';
+            const message = queued
+              ? `Document queued: ${data.filename}. Processing will continue in the background.`
+              : `Document ready: ${data.filename} (${unitCount} ${unitLabel}${unitCount === 1 ? '' : 's'}, ${data.chunk_count} searchable chunks).`;
             appendMessage('agent', message);
             cacheMessage('agent', message, new Date().toISOString());
             await logManualMessage('agent', message);
+            if (queued) pollDocument(data.document_id);
           } catch (error) {
             appendMessage('agent', `Document error (${file.name}): ${error.message}`);
           }
@@ -899,20 +1037,42 @@
       }
     }
 
+    async function pollDocument(documentId) {
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const response = await fetch(`/chain/documents/${encodeURIComponent(documentId)}/status`);
+        if (!response.ok) return;
+        const documentData = await response.json();
+        const index = activeDocuments.findIndex(item => item.document_id === documentId);
+        if (index >= 0) activeDocuments[index] = documentData;
+        renderFormInputs();
+        if (documentData.status === 'ready') {
+          appendMessage('agent', `Document ready: ${documentData.filename} (${documentData.chunk_count} searchable chunks).`);
+          return;
+        }
+        if (documentData.status === 'failed') {
+          appendMessage('agent', `Document processing failed: ${documentData.failure_reason || 'unknown error'}`);
+          return;
+        }
+      }
+    }
+
     // Append a message to the chat view
     function appendMessage(
       sender,
       text,
       timestamp = new Date().toLocaleTimeString(),
       extraHtml = '',
-      allowHtml = false
+      allowHtml = false,
+      evidence = [],
+      claims = []
     ) {
       const messageDiv = document.createElement('div');
       const safeSender = sender === 'user' ? 'user' : 'agent';
-      const bubbleContent = allowHtml ? text : renderMessageText(text);
+      const bubbleContent = allowHtml ? text : renderAnswerText(text, evidence);
       messageDiv.className = `message ${safeSender}`;
       messageDiv.innerHTML = `
-        <div class="message-bubble">${bubbleContent}</div>
+        <div class="message-bubble">${bubbleContent}${renderClaimBadges(claims)}</div>
         ${extraHtml}
         <div class="message-meta">${safeSender === 'user' ? 'You' : 'Agent'} • ${escapeHtml(timestamp)}</div>
       `;
@@ -983,7 +1143,15 @@
           const traceId = `trace-${Date.now()}`;
           const traceHtml = buildTraceHtml(data, traceId);
           
-          appendMessage('agent', data.verify.final_summary, new Date().toLocaleTimeString(), traceHtml);
+          appendMessage(
+            'agent',
+            data.verify.final_summary,
+            new Date().toLocaleTimeString(),
+            traceHtml,
+            false,
+            data.verify.evidence || [],
+            data.verify.claims || []
+          );
           cacheMessage(
             'agent',
             data.verify.final_summary,
@@ -1092,7 +1260,54 @@
     }
 
     // Startup bootstrap loader
+    async function ensureAuthenticated() {
+      const response = await fetch('/auth/me');
+      if (response.status === 404) return true;
+      if (response.ok) {
+        document.getElementById('logout-button').style.display = 'inline-block';
+        return true;
+      }
+      document.getElementById('login-overlay').classList.add('open');
+      return false;
+    }
+
+    async function logoutUser() {
+      await fetch('/auth/logout', {method: 'POST'});
+      sessions = [];
+      activeDocuments = [];
+      document.getElementById('logout-button').style.display = 'none';
+      document.getElementById('login-overlay').classList.add('open');
+    }
+
+    async function loginUser(event) {
+      event.preventDefault();
+      const error = document.getElementById('login-error');
+      error.textContent = '';
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const url = pendingPasswordChange ? '/auth/change-password' : '/auth/login';
+      const payload = pendingPasswordChange
+        ? { current_password: password, new_password: newPassword }
+        : { email, password };
+      const response = await fetch(url, {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+      });
+      const data = response.status === 204 ? {} : await response.json();
+      if (!response.ok) { error.textContent = data.detail || 'Sign in failed'; return; }
+      if (!pendingPasswordChange && data.must_change_password) {
+        pendingPasswordChange = true;
+        document.getElementById('new-password').classList.remove('collapsed');
+        document.getElementById('login-button').textContent = 'Change password';
+        error.textContent = 'Set a new password before continuing.';
+        return;
+      }
+      document.getElementById('login-overlay').classList.remove('open');
+      await initChat();
+    }
+
     async function initChat() {
+      if (!await ensureAuthenticated()) return;
       await loadSessionsFromServer();
       if (sessions.length > 0) {
         selectSession(sessions[0].id);

@@ -61,6 +61,7 @@ from .schemas import (
     VerifyResult,
 )
 from .tools import TOOL_REGISTRY, ToolError
+from .workspace_config import workspace_settings
 
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
 MAX_STEPS = 6
@@ -187,6 +188,20 @@ def _validate_runtime_decision(
             CorrectionType.missing_citations,
             "The answer uses retrieved document passages but does not preserve a returned "
             "citation. Add at least one exact [filename, locator] citation from document_context.",
+        )
+    if (
+        decision.satisfied
+        and document_citations
+        and workspace_settings.enabled
+        and (
+            not decision.claims
+            or not any(claim.evidence_chunk_ids for claim in decision.claims)
+        )
+    ):
+        raise DecisionValidationError(
+            CorrectionType.missing_citations,
+            "Evidence Workspace document answers require atomic claims with supplied "
+            "evidence_chunk_ids.",
         )
 
 
@@ -403,6 +418,7 @@ def run_chain(
 
     satisfied = False
     final_summary = ""
+    final_claims = []
     missing_reason = "Goal not fully met or stopped prematurely"
     step_count = 0
     max_steps = 8
@@ -529,6 +545,7 @@ def run_chain(
         if isinstance(decision, FinalDecision):
             satisfied = decision.satisfied
             final_summary = decision.final_summary
+            final_claims = decision.claims
             if not satisfied:
                 missing_reason = "Agent reported that the goal could not be fully satisfied"
             break
@@ -569,6 +586,31 @@ def run_chain(
     total_latency_ms = (time.perf_counter() - chain_start) * 1000
     end_time = datetime.now(timezone.utc).isoformat()
 
+    verified_claims = []
+    evidence = []
+    if (
+        workspace_settings.enabled
+        and conversation
+        and conversation.document_passages
+        and final_claims
+    ):
+        try:
+            from .evidence import verify_claim_evidence
+
+            verified_claims, evidence = verify_claim_evidence(
+                final_claims, conversation.document_passages
+            )
+        except Exception:
+            verified_claims = [
+                {
+                    "text": claim.text,
+                    "status": "evidence_missing",
+                    "support_score": 0.0,
+                    "evidence_chunk_ids": [],
+                }
+                for claim in final_claims
+            ]
+
     return ChainTrace(
         request_id=request_id,
         goal=goal,
@@ -578,7 +620,9 @@ def run_chain(
             satisfied=satisfied,
             missing=[] if satisfied else [missing_reason],
             repair_steps=[],
-            final_summary=final_summary
+            final_summary=final_summary,
+            claims=verified_claims,
+            evidence=evidence,
         ),
         repair_rounds=0,
         start_time=start_time,

@@ -833,9 +833,11 @@
       const compTok = selectedTrace.total_completion_tokens || 0;
       const totalTok = selectedTrace.total_tokens || 0;
       const context = selectedTrace.context_usage || {};
+      const claims = selectedTrace.verify.claims || [];
+      const supportedClaims = claims.filter(claim => claim.status === 'supported').length;
       header.innerHTML = `
         <h2>Inspect: ${escapeHtml(selectedTrace.goal.slice(0, 45))}${selectedTrace.goal.length > 45 ? '...' : ''}</h2>
-        <p>Goal satisfied: <strong style="color:${selectedTrace.verify.satisfied ? 'var(--success)' : 'var(--danger)'}">${selectedTrace.verify.satisfied ? 'YES' : 'NO'}</strong> | Latency: <strong>${Math.round(selectedTrace.total_latency_ms)}ms</strong> | Tokens: <strong>${escapeHtml(totalTok.toLocaleString())}</strong> (Prompt: ${escapeHtml(promptTok)} / Output: ${escapeHtml(compTok)}) | Context: <strong>${escapeHtml(context.used_tokens || 0)} / ${escapeHtml(context.budget_tokens || 0)}</strong> (${escapeHtml(context.utilization_percent || 0)}%, compression L${escapeHtml(context.compression_level || 0)}) | Document chunks: <strong>${escapeHtml(context.document_chunks_included || 0)}</strong> | Corrections: <strong>${escapeHtml(selectedTrace.total_corrections || 0)}</strong></p>
+        <p>Goal satisfied: <strong style="color:${selectedTrace.verify.satisfied ? 'var(--success)' : 'var(--danger)'}">${selectedTrace.verify.satisfied ? 'YES' : 'NO'}</strong> | Latency: <strong>${Math.round(selectedTrace.total_latency_ms)}ms</strong> | Tokens: <strong>${escapeHtml(totalTok.toLocaleString())}</strong> (Prompt: ${escapeHtml(promptTok)} / Output: ${escapeHtml(compTok)}) | Context: <strong>${escapeHtml(context.used_tokens || 0)} / ${escapeHtml(context.budget_tokens || 0)}</strong> (${escapeHtml(context.utilization_percent || 0)}%, compression L${escapeHtml(context.compression_level || 0)}) | Document chunks: <strong>${escapeHtml(context.document_chunks_included || 0)}</strong> | Evidence: <strong>${escapeHtml(supportedClaims)}/${escapeHtml(claims.length)} claims</strong> | Corrections: <strong>${escapeHtml(selectedTrace.total_corrections || 0)}</strong></p>
       `;
     }
 
@@ -948,6 +950,11 @@
         // Add Verification result node
         const verifyClass = selectedTrace.verify.satisfied ? 'success' : 'failed';
         const verifyMarker = selectedTrace.verify.satisfied ? '★' : '⚠';
+        const evidenceClaimsHtml = (selectedTrace.verify.claims || []).map(claim => `
+          <li style="color:${claim.status === 'supported' ? 'var(--success)' : 'var(--warning)'}">
+            ${escapeHtml(claim.status)} · ${escapeHtml(Math.round((claim.support_score || 0) * 100))}% — ${escapeHtml(claim.text)}
+          </li>
+        `).join('');
         nodesHtml += `
           <div class="timeline-node">
             <div class="node-marker ${verifyClass}">${verifyMarker}</div>
@@ -956,6 +963,7 @@
                 <span class="node-title">Verification Outcome</span>
               </div>
               <div class="node-meta"><strong>Summary:</strong> ${escapeHtml(selectedTrace.verify.final_summary)}</div>
+              ${evidenceClaimsHtml ? `<div class="node-meta"><strong>Evidence claims:</strong><ul style="margin:4px 0 0 18px">${evidenceClaimsHtml}</ul></div>` : ''}
               ${selectedTrace.verify.missing.length > 0 ? `<div class="node-meta" style="color:var(--warning)"><strong>Missing targets:</strong> ${escapeHtml(selectedTrace.verify.missing.join(', '))}</div>` : ''}
               ${selectedTrace.verify.repair_steps.length > 0 ? `<div class="node-meta" style="color:var(--accent)"><strong>Proposed repair:</strong> ${escapeHtml(selectedTrace.verify.repair_steps.length)} steps</div>` : ''}
             </div>

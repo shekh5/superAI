@@ -1,5 +1,10 @@
 # Session Document Retrieval
 
+> This page also describes the backward-compatible Redis lexical mode. When
+> `EVIDENCE_WORKSPACE_ENABLED=true`, originals, ownership, queued ingestion, hybrid retrieval,
+> and citation previews use the production architecture documented in
+> [evidence-workspace.md](evidence-workspace.md).
+
 ## Scope
 
 SuperAI accepts several text-bearing document formats, extracts their content once, and persists

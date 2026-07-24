@@ -105,6 +105,7 @@ class DocumentMetadata(BaseModel):
     chunk_count: int
     extracted_chars: int
     created_at: str
+    failure_reason: Optional[str] = None
 
 
 class DocumentChunk(BaseModel):
@@ -129,6 +130,7 @@ class DocumentRetrieval:
     citations: list[str] = field(default_factory=list)
     document_ids: list[str] = field(default_factory=list)
     chunk_count: int = 0
+    passages: list[dict] = field(default_factory=list)
 
 
 GENERIC_DOCUMENT_TERMS = {

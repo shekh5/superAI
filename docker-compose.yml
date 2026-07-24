@@ -35,6 +35,19 @@ services:
       - DOCUMENT_RETRIEVAL_MAX_CHARS
       - DOCUMENT_MAX_PER_SESSION
       - DOCUMENT_TTL_SECONDS
+      - EVIDENCE_WORKSPACE_ENABLED=${EVIDENCE_WORKSPACE_ENABLED:-false}
+      - AUTH_REQUIRED=${AUTH_REQUIRED:-false}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg://superai:superai@postgres:5432/superai}
+      - S3_BUCKET=${S3_BUCKET:-superai-documents}
+      - AWS_REGION=${AWS_REGION:-ap-south-1}
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://minio:9000}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - BOOTSTRAP_ADMIN_EMAIL
+      - BOOTSTRAP_ADMIN_PASSWORD
+      - EMBEDDING_MODEL
+      - EVIDENCE_SUPPORT_THRESHOLD
     depends_on:
       redis:
         condition: service_healthy
@@ -54,5 +67,62 @@ services:
       retries: 5
     restart: unless-stopped
 
+  worker:
+    profiles: ["workspace"]
+    build: .
+    command: python -m reasoning_chain.worker
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg://superai:superai@postgres:5432/superai}
+      - S3_BUCKET=${S3_BUCKET:-superai-documents}
+      - AWS_REGION=${AWS_REGION:-ap-south-1}
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://minio:9000}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      - EMBEDDING_MODEL
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    profiles: ["workspace"]
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: superai
+      POSTGRES_USER: superai
+      POSTGRES_PASSWORD: superai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superai"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    profiles: ["workspace"]
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+
+  minio-init:
+    profiles: ["workspace"]
+    image: minio/mc:latest
+    depends_on: [minio]
+    entrypoint: ["/bin/sh", "-c"]
+    command: >-
+      until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 1; done;
+      mc mb --ignore-existing local/superai-documents;
+      mc anonymous set none local/superai-documents
+
 volumes:
   redis_data:
+  postgres_data:
+  minio_data:

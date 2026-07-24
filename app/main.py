@@ -19,11 +19,39 @@ from pydantic import BaseModel
 
 from reasoning_chain.router import router as chain_router
 from reasoning_chain.safe_math import evaluate_arithmetic
+from reasoning_chain.workspace_config import workspace_settings
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 
 app = FastAPI(title="SuperAI Service", version=APP_VERSION)
 app.include_router(chain_router, prefix="/chain")
+
+if workspace_settings.enabled:
+    from reasoning_chain.auth import admin_router, bootstrap_admin, require_identity
+    from reasoning_chain.auth import router as auth_router
+
+    workspace_settings.validate()
+    app.include_router(auth_router)
+    app.include_router(admin_router)
+
+    @app.on_event("startup")
+    def initialize_workspace():
+        bootstrap_admin()
+
+    @app.middleware("http")
+    async def protect_workspace(request, call_next):
+        public_paths = {
+            "/",
+            "/health",
+            "/version",
+            "/chat",
+            "/dashboard",
+            "/auth/login",
+            "/auth/logout",
+        }
+        if request.url.path not in public_paths:
+            require_identity(request)
+        return await call_next(request)
 
 
 # ---------- Tools the agent can call ----------

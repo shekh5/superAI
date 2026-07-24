@@ -35,6 +35,16 @@ services:
       - DOCUMENT_RETRIEVAL_MAX_CHARS
       - DOCUMENT_MAX_PER_SESSION
       - DOCUMENT_TTL_SECONDS
+      - EVIDENCE_WORKSPACE_ENABLED
+      - AUTH_REQUIRED
+      - DATABASE_URL
+      - S3_BUCKET
+      - AWS_REGION
+      - COOKIE_SECURE
+      - BOOTSTRAP_ADMIN_EMAIL
+      - BOOTSTRAP_ADMIN_PASSWORD
+      - EMBEDDING_MODEL
+      - EVIDENCE_SUPPORT_THRESHOLD
     depends_on:
       redis:
         condition: service_healthy
@@ -50,6 +60,20 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    restart: unless-stopped
+
+  worker:
+    image: ghcr.io/${GITHUB_REPOSITORY}:latest
+    command: python -m reasoning_chain.worker
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL
+      - S3_BUCKET
+      - AWS_REGION
+      - EMBEDDING_MODEL
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

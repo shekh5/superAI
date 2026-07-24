@@ -45,3 +45,5 @@ jobs:
           context: .
           push: false
           tags: agentic-capstone:ci-check
+          build-args: |
+            BAKE_EMBEDDING_MODEL=false

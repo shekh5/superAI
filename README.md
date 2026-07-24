@@ -167,19 +167,29 @@ search; a corrected query must be selected explicitly by the agent. Configure a 
 model with `WEB_SEARCH_MODEL` if needed. See
 [docs/web-search-grounding.md](docs/web-search-grounding.md) for the flow and EC2 setup.
 
-### Session document questions
+### Evidence Workspace document questions
 
 In Reasoning Chain mode, the `Files` button accepts PDF, DOCX, TXT, Markdown, CSV, TSV, XLSX, and
-PPTX documents. The server applies a format-specific parser, creates overlapping chunks with
-page/slide/sheet/row/section locators, and persists them in Redis with a configurable TTL. Later
-questions using the same `session_id` retrieve only relevant chunks; generic explanation requests
-receive representative passages. Retrieved text is high-priority untrusted context, not
-conversation history, and a satisfied answer must preserve an exact source citation.
+PPTX documents. Legacy mode stores extracted chunks in Redis and uses local lexical retrieval.
 
-This version deliberately uses local lexical retrieval, so it requires no embedding API or vector
-database. Scanned/image-only content returns an explicit OCR-required error. See
-[docs/document-rag.md](docs/document-rag.md) for endpoints, limits, storage keys, security
-constraints, and production extension guidance.
+Setting `EVIDENCE_WORKSPACE_ENABLED=true` enables the production workspace: invite-only accounts,
+private S3 originals, asynchronous extraction, local multilingual embeddings, Neon/pgvector hybrid
+retrieval, structured evidence, claim-support badges, and clickable PDF/text previews. Redis remains
+responsible for clean conversation context, traces, caches, and the ingestion queue. See
+[docs/evidence-workspace.md](docs/evidence-workspace.md) for provisioning and deployment, and
+[docs/document-rag.md](docs/document-rag.md) for extraction limits.
+
+Local workspace development uses the optional Compose profile:
+
+```bash
+docker compose --profile workspace up -d postgres minio minio-init redis
+EVIDENCE_WORKSPACE_ENABLED=true AUTH_REQUIRED=true \
+docker compose --profile workspace run --rm app alembic upgrade head
+EVIDENCE_WORKSPACE_ENABLED=true AUTH_REQUIRED=true \
+BOOTSTRAP_ADMIN_EMAIL=admin@example.com \
+BOOTSTRAP_ADMIN_PASSWORD='replace-with-a-long-password' \
+docker compose --profile workspace up --build
+```
 
 ## Run tests
 
@@ -211,11 +221,12 @@ ruff check app reasoning_chain tests
    - Health-checks the deployed service
    - Rolls back automatically if the health check fails
 
-   To make the deploy step real, add these **repo secrets**
+   To deploy to EC2, add these **repo secrets**
    (Settings → Secrets and variables → Actions):
-   - `APP_HEALTH_URL` — e.g. `https://your-app.fly.dev/health`
-   - `DEPLOY_HOOK_URL` (if using Render) or configure `flyctl`/SSH auth
-     depending on your host.
+   - Existing: `EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`, `GHCR_PAT`, `GEMINI_API_KEY`
+   - Evidence Workspace: `EVIDENCE_WORKSPACE_ENABLED`, `AUTH_REQUIRED`, `DATABASE_URL`,
+     `S3_BUCKET`, `AWS_REGION`, `COOKIE_SECURE`, `BOOTSTRAP_ADMIN_EMAIL`, and
+     `BOOTSTRAP_ADMIN_PASSWORD`
 
 ## Suggested learning path through this repo
 
