@@ -76,6 +76,16 @@ def test_chat_ui_has_evidence_workspace_controls():
     assert "pollDocument" in r.text
 
 
+def test_chat_ui_has_modern_responsive_workspace_shell():
+    r = client.get("/chat")
+    assert 'class="chat-topbar"' in r.text
+    assert 'class="welcome-shell"' in r.text
+    assert "suggestion-grid" in r.text
+    assert "toggleMobileSidebar" in r.text
+    assert "submitComposer" in r.text
+    assert "message-avatar" in r.text
+
+
 def test_dashboard_displays_web_search_sources():
     r = client.get("/dashboard")
     assert "call.response_payload.sources" in r.text

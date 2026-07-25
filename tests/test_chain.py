@@ -215,7 +215,7 @@ def test_run_chain_applies_and_records_user_temperature():
     assert config.temperature == 0.7
     assert trace.temperature == 0.7
     assert trace.llm_calls[0].temperature == 0.7
-    assert trace.llm_calls[0].prompt_version == "react-v7"
+    assert trace.llm_calls[0].prompt_version == "react-v8"
 
 
 def test_run_chain_records_brief_reason_and_keeps_goal_out_of_system_prompt():

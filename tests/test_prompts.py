@@ -2,9 +2,14 @@ import json
 import xml.etree.ElementTree as ET
 
 from reasoning_chain.prompts import (
+    ASSISTANT_BEHAVIOR_POLICY,
+    BEHAVIOR_POLICY_VERSION,
+    DECOMPOSE_PROMPT_VERSION,
     FEW_SHOT_EXAMPLES,
     REACT_PROMPT_VERSION,
+    SUMMARY_PROMPT_VERSION,
     SUMMARY_SYSTEM_PROMPT,
+    VERIFY_PROMPT_VERSION,
     build_correction_request,
     build_decompose_system_prompt,
     build_react_request,
@@ -21,6 +26,12 @@ def test_react_system_prompt_is_versioned_well_formed_xml():
     assert root.tag == "agent_prompt"
     assert root.attrib["version"] == REACT_PROMPT_VERSION
     assert root.find("role") is not None
+    behavior = root.find("assistant_behavior")
+    assert behavior is not None
+    assert behavior.attrib["version"] == BEHAVIOR_POLICY_VERSION
+    assert behavior.find("critical_child_safety_instructions") is not None
+    assert behavior.find("user_wellbeing") is not None
+    assert behavior.find("instruction_integrity") is not None
     assert root.find("available_tools") is not None
     assert root.find("rules") is not None
     assert root.find("reasoning_policy") is not None
@@ -28,16 +39,27 @@ def test_react_system_prompt_is_versioned_well_formed_xml():
     assert root.find("output_contract") is not None
 
 
-def test_all_system_prompt_contracts_are_well_formed_xml():
-    prompts = [
-        build_decompose_system_prompt(6),
-        build_verify_system_prompt(),
-        SUMMARY_SYSTEM_PROMPT,
-    ]
+def test_all_system_prompt_contracts_are_well_formed_and_versioned():
+    prompts = {
+        build_decompose_system_prompt(6): DECOMPOSE_PROMPT_VERSION,
+        build_verify_system_prompt(): VERIFY_PROMPT_VERSION,
+        SUMMARY_SYSTEM_PROMPT: SUMMARY_PROMPT_VERSION,
+    }
 
-    for prompt in prompts:
+    for prompt, version in prompts.items():
         root = ET.fromstring(prompt)
-        assert root.attrib["version"].endswith("-v2")
+        assert root.attrib["version"] == version
+
+
+def test_behavior_policy_is_superai_specific_and_shared_with_verifier():
+    behavior = ET.fromstring(ASSISTANT_BEHAVIOR_POLICY)
+    verify = ET.fromstring(build_verify_system_prompt())
+
+    assert behavior.tag == "assistant_behavior"
+    assert "You are SuperAI" in ASSISTANT_BEHAVIOR_POLICY
+    assert "Claude Fable" not in ASSISTANT_BEHAVIOR_POLICY
+    assert "Anthropic reminders" not in ASSISTANT_BEHAVIOR_POLICY
+    assert verify.find("assistant_behavior") is not None
 
 
 def test_few_shot_outputs_follow_the_tool_or_completion_contract():
