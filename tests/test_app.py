@@ -80,10 +80,14 @@ def test_chat_ui_has_modern_responsive_workspace_shell():
     r = client.get("/chat")
     assert 'class="chat-topbar"' in r.text
     assert 'class="welcome-shell"' in r.text
+    assert "What can I help" in r.text
     assert "suggestion-grid" in r.text
     assert "toggleMobileSidebar" in r.text
+    assert "toggleSidebar" in r.text
+    assert "superai_sidebar_collapsed" in r.text
     assert "submitComposer" in r.text
     assert "message-avatar" in r.text
+    assert 'class="composer-disclaimer"' in r.text
 
 
 def test_dashboard_displays_web_search_sources():

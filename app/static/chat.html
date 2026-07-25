@@ -792,6 +792,434 @@
       .composer-hint { display: none; }
       .topbar-actions .topbar-pill { display: none; }
     }
+
+    /* Conversation-first redesign: inspired by modern AI workspaces */
+    :root {
+      --bg-gradient: #20201e;
+      --card-bg: #20201e;
+      --border-color: rgba(255, 255, 255, .08);
+      --text-main: #f1f0eb;
+      --text-muted: #9b9a94;
+      --accent: #d97757;
+      --accent-hover: #e48968;
+      --surface-raised: #2a2a27;
+      --surface-soft: rgba(255, 255, 255, .045);
+      --chat-user-bg: #30302d;
+      --chat-agent-bg: transparent;
+    }
+
+    body {
+      background: #20201e;
+      color: var(--text-main);
+    }
+
+    .app-container { background: #20201e; }
+
+    .sidebar {
+      width: 260px;
+      flex-basis: 260px;
+      padding: 10px 9px;
+      gap: 5px;
+      background: #171715;
+      border-right: 1px solid rgba(255, 255, 255, .055);
+      transition: width .22s ease, flex-basis .22s ease, transform .22s ease;
+    }
+
+    .app-container.sidebar-collapsed .sidebar {
+      width: 0;
+      flex-basis: 0;
+      padding-left: 0;
+      padding-right: 0;
+      border-right: 0;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      min-height: 46px;
+      padding: 5px 8px 8px;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      flex-basis: 30px;
+      border-radius: 9px;
+      color: #f7e4da;
+      background: #4b3028;
+      box-shadow: none;
+    }
+
+    .brand-mark svg { width: 16px; height: 16px; }
+    .sidebar-header h1 { font-size: .86rem; font-weight: 700; }
+    .sidebar-header p { color: #77766f; font-size: .61rem; }
+    .workspace-status { width: 6px; height: 6px; box-shadow: none; background: #6ea986; }
+
+    .new-chat-btn {
+      justify-content: flex-start;
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 10px;
+      background: transparent;
+      color: #d7d6d0;
+      font-size: .72rem;
+      font-weight: 600;
+    }
+
+    .new-chat-btn:hover {
+      background: rgba(255, 255, 255, .055);
+      transform: none;
+    }
+
+    .mode-selector {
+      margin-top: 4px;
+      padding: 8px 7px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.055);
+    }
+
+    .mode-label { padding: 0 3px; color: #73726c; font-size: .57rem; }
+    .mode-options { border: 0; padding: 2px; background: #10100f; }
+    .mode-btn { color: #85847e; padding: 7px 5px; }
+    .mode-btn.active { color: #ecebe5; background: #2a2a27; box-shadow: none; }
+
+    .sessions-heading { padding: 14px 10px 5px; color: #6f6e68; }
+    .history-list { gap: 1px; }
+    .history-item {
+      padding: 9px 10px;
+      border-radius: 8px;
+      color: #aaa9a3;
+      font-size: .7rem;
+    }
+
+    .history-item::before { display: none; }
+    .history-item:hover { background: rgba(255,255,255,.045); }
+    .history-item.active-session {
+      background: rgba(255,255,255,.07) !important;
+      color: #eeede8 !important;
+    }
+
+    .sidebar-footer { border-color: rgba(255,255,255,.055); }
+    .sidebar-action { color: #85847e; }
+
+    .chat-area {
+      background: #20201e;
+      isolation: isolate;
+    }
+
+    .chat-topbar {
+      height: 58px;
+      flex-basis: 58px;
+      padding: 0 18px;
+      border: 0;
+      background: rgba(32, 32, 30, .92);
+      backdrop-filter: blur(18px);
+    }
+
+    .desktop-sidebar-btn,
+    .mobile-menu-btn {
+      width: 32px;
+      height: 32px;
+      flex: 0 0 32px;
+      border: 0;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: transparent;
+      color: #9a9993;
+      cursor: pointer;
+    }
+
+    .desktop-sidebar-btn:hover,
+    .mobile-menu-btn:hover { color: #f1f0eb; background: rgba(255,255,255,.055); }
+    .sidebar-glyph {
+      width: 16px;
+      height: 15px;
+      display: block;
+      border: 1.5px solid currentColor;
+      border-radius: 3px;
+      position: relative;
+    }
+    .sidebar-glyph::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 4px;
+      border-left: 1.5px solid currentColor;
+    }
+
+    .chat-heading { flex: 1; display: flex; align-items: center; gap: 8px; }
+    .chat-heading h2 {
+      max-width: min(520px, 54vw);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: .78rem;
+      font-weight: 600;
+      color: #d8d7d2;
+    }
+
+    .chat-heading h2::after {
+      content: '⌄';
+      margin-left: 8px;
+      color: #77766f;
+      font-size: .75rem;
+    }
+
+    .chat-heading p { display: none; }
+    .topbar-actions { gap: 4px; }
+    .topbar-pill {
+      border: 0;
+      border-radius: 8px;
+      padding: 7px 9px;
+      background: transparent;
+      color: #85847e;
+    }
+
+    .topbar-pill:hover { background: rgba(255,255,255,.045); color: #d6d5cf; }
+    .topbar-pill strong { color: inherit; }
+
+    .chat-messages {
+      width: 100%;
+      padding: 34px max(24px, calc((100% - 780px) / 2)) 190px;
+      gap: 34px;
+      scroll-padding-bottom: 180px;
+    }
+
+    .welcome-shell {
+      width: min(760px, 100%);
+      margin: auto;
+      padding: 4vh 0 40px;
+      text-align: left;
+    }
+
+    .welcome-orb {
+      width: 38px;
+      height: 38px;
+      margin: 0 0 22px;
+      border-radius: 12px;
+      color: #f3c9b8;
+      background: #4b3028;
+      box-shadow: none;
+    }
+
+    .welcome-orb svg { width: 18px; height: 18px; }
+    .welcome-shell h2 {
+      font-family: Georgia, 'Times New Roman', serif;
+      max-width: 620px;
+      font-size: clamp(2rem, 4.3vw, 3.15rem);
+      font-weight: 400;
+      letter-spacing: -.045em;
+      line-height: 1.04;
+      color: #e8e2d8;
+    }
+
+    .welcome-shell > p {
+      max-width: 610px;
+      margin-top: 16px;
+      color: #9d9b94;
+      font-size: .84rem;
+      line-height: 1.65;
+    }
+
+    .suggestion-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 30px;
+    }
+
+    .suggestion-card {
+      min-height: 74px;
+      padding: 13px 15px;
+      border-color: rgba(255,255,255,.075);
+      border-radius: 12px;
+      background: transparent;
+    }
+
+    .suggestion-card:hover {
+      border-color: rgba(255,255,255,.16);
+      background: rgba(255,255,255,.035);
+      transform: none;
+    }
+
+    .suggestion-card span { color: #d4d2cb; font-size: .7rem; font-weight: 650; }
+    .suggestion-card strong { color: #85847e; font-size: .66rem; font-weight: 500; }
+
+    .message,
+    .message.user {
+      width: min(760px, 100%);
+      max-width: 100%;
+      align-self: center;
+      gap: 12px;
+    }
+
+    .message.user { flex-direction: row-reverse; }
+    .message-avatar {
+      width: 28px;
+      height: 28px;
+      flex-basis: 28px;
+      border-radius: 9px;
+      margin-top: 1px;
+      background: #4b3028;
+      color: #f4d4c6;
+      box-shadow: none;
+    }
+
+    .message.user .message-avatar { display: none; }
+    .message.user .message-content { max-width: min(590px, 86%); }
+    .message-bubble { font-size: .81rem; line-height: 1.72; }
+    .message.agent .message-bubble {
+      padding: 2px 0;
+      border: 0;
+      background: transparent;
+      color: #e3e1da;
+    }
+
+    .message.user .message-bubble {
+      padding: 11px 15px;
+      border: 1px solid rgba(255,255,255,.045);
+      border-radius: 16px 16px 4px 16px;
+      background: #30302d;
+      box-shadow: none;
+      color: #efeee9;
+    }
+
+    .message-meta { margin-top: 6px; color: #6e6d67; font-size: .55rem; }
+    .message.agent .message-meta { margin-left: 0; }
+
+    .trace-container {
+      margin-top: 14px;
+      border-color: rgba(255,255,255,.065);
+      border-radius: 10px;
+      background: rgba(0,0,0,.08);
+    }
+
+    .trace-header { padding: 9px 11px; background: transparent; border: 0; }
+    .trace-title { color: #77766f; font-size: .61rem; }
+    .trace-body { border-top: 1px solid rgba(255,255,255,.055); }
+
+    .chat-input-container {
+      position: absolute;
+      z-index: 5;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 32px max(20px, calc((100% - 820px) / 2)) 16px;
+      background: linear-gradient(180deg, rgba(32,32,30,0), #20201e 32%, #20201e 100%);
+      pointer-events: none;
+    }
+
+    .input-form,
+    .composer-disclaimer { pointer-events: auto; }
+    .input-form {
+      padding: 9px 10px 8px;
+      border: 1px solid rgba(255,255,255,.11);
+      border-radius: 22px;
+      background: #2b2b28;
+      box-shadow: 0 12px 42px rgba(0,0,0,.24);
+    }
+
+    .input-form:focus-within {
+      border-color: rgba(255,255,255,.18);
+      box-shadow: 0 14px 48px rgba(0,0,0,.3);
+    }
+
+    .input-row { gap: 6px; align-items: center; }
+    #goal-input {
+      order: -2;
+      flex: 1 0 100%;
+      width: 100%;
+      min-height: 54px;
+      padding: 12px 9px 7px;
+      font-size: .81rem;
+      color: #f0efea;
+    }
+
+    #argument-input { min-height: 42px; }
+    .text-input::placeholder { color: #77766f; }
+    .select-input,
+    .attach-btn {
+      min-width: auto;
+      width: auto;
+      padding: 8px 10px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: #aaa8a1;
+      font-size: .62rem;
+    }
+
+    .select-input:hover,
+    .attach-btn:hover { background: rgba(255,255,255,.055); }
+    .attach-btn { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+    .submit-btn {
+      width: 34px;
+      height: 34px;
+      flex-basis: 34px;
+      margin-left: auto;
+      border-radius: 50%;
+      color: #24231f;
+      background: #ece8df;
+      box-shadow: none;
+    }
+
+    .submit-btn:hover { background: #fffdf8; transform: scale(1.03); }
+    .submit-btn:disabled { background: #62615c; color: #aaa9a3; }
+    .submit-btn svg { width: 15px; height: 15px; }
+    .composer-hint { display: none; }
+    .composer-disclaimer {
+      margin: 7px auto 0;
+      text-align: center;
+      color: #686761;
+      font-size: .54rem;
+    }
+
+    .citation-btn {
+      border-color: rgba(217,119,87,.25);
+      background: rgba(217,119,87,.1);
+      color: #e7a78f;
+    }
+
+    .evidence-panel {
+      width: min(470px, 40vw);
+      border-color: rgba(255,255,255,.07);
+      background: #191917;
+      box-shadow: -24px 0 60px rgba(0,0,0,.24);
+    }
+
+    .login-overlay { background: rgba(18,18,16,.9); }
+    .login-card { background: #282825; }
+    .login-card::before { color: #f4d4c6; background: #4b3028; }
+
+    @media (max-width: 900px) {
+      .app-container.sidebar-collapsed .sidebar {
+        width: min(86vw, 300px);
+        flex-basis: auto;
+        padding: 10px 9px;
+      }
+      .sidebar { width: min(86vw, 300px); }
+      .desktop-sidebar-btn { display: none; }
+      .mobile-menu-btn { display: grid; }
+      .chat-messages { padding: 28px 18px 180px; }
+      .chat-input-container { padding: 28px 12px 10px; }
+      .evidence-panel { width: min(94vw, 470px); }
+    }
+
+    @media (min-width: 901px) {
+      .mobile-menu-btn { display: none; }
+    }
+
+    @media (max-width: 600px) {
+      .chat-topbar { padding: 0 9px; }
+      .chat-heading h2 { max-width: 60vw; }
+      .welcome-shell { padding: 2vh 4px 30px; }
+      .welcome-shell h2 { font-size: 2.05rem; }
+      .suggestion-grid { grid-template-columns: 1fr; }
+      .suggestion-card:nth-child(n+3) { display: none; }
+      .message, .message.user { width: 100%; }
+      .message.user .message-content { max-width: 90%; }
+      .select-input { max-width: 130px; }
+      .composer-disclaimer { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -846,6 +1274,9 @@
         <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Open navigation">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
+        <button class="desktop-sidebar-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar" title="Toggle sidebar">
+          <span class="sidebar-glyph" aria-hidden="true"></span>
+        </button>
         <div class="chat-heading">
           <h2 id="active-chat-title">New conversation</h2>
           <p id="active-chat-subtitle">Deep reasoning · source-aware answers</p>
@@ -858,8 +1289,8 @@
       <div class="chat-messages" id="chat-messages-container">
         <div class="welcome-shell">
           <div class="welcome-orb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></svg></div>
-          <h2>Think deeper.<br>Verify every answer.</h2>
-          <p>Ask a complex question, search the live web, or attach documents. SuperAI keeps the useful context and shows the evidence behind document answers.</p>
+          <h2>What can I help<br>you explore?</h2>
+          <p>Ask a question, work with your documents, or research the live web. SuperAI reasons through the task and keeps evidence close at hand.</p>
           <div class="suggestion-grid">
             <button class="suggestion-card" onclick="useSuggestion('Compare the key findings across my uploaded documents')"><span>Compare documents</span><strong>Find agreements, differences, and important details</strong></button>
             <button class="suggestion-card" onclick="useSuggestion('Search the web for the latest developments in AI agents and summarize them with sources')"><span>Research the web</span><strong>Get a current, source-grounded briefing</strong></button>
@@ -876,6 +1307,7 @@
             <!-- Dynamically swaps inputs here depending on the selected mode -->
           </div>
         </form>
+        <p class="composer-disclaimer">SuperAI can make mistakes. Check important information and review cited sources.</p>
       </div>
     </div>
 
@@ -911,6 +1343,7 @@
     let evidenceRegistry = {};
     let pendingPasswordChange = false;
     const TEMPERATURE_STORAGE_KEY = 'agentic_react_temperature';
+    const SIDEBAR_STORAGE_KEY = 'superai_sidebar_collapsed';
     const SUPPORTED_TEMPERATURES = ['0.0', '0.1', '0.4', '0.7'];
 
     const chatMessagesContainer = document.getElementById('chat-messages-container');
@@ -994,6 +1427,18 @@
 
     function toggleMobileSidebar() {
       document.querySelector('.sidebar').classList.toggle('mobile-open');
+    }
+
+    function toggleSidebar() {
+      const appContainer = document.querySelector('.app-container');
+      const collapsed = appContainer.classList.toggle('sidebar-collapsed');
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed ? 'true' : 'false');
+    }
+
+    function restoreSidebarPreference() {
+      if (localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true') {
+        document.querySelector('.app-container').classList.add('sidebar-collapsed');
+      }
     }
 
     function updateDocumentIndicators() {
@@ -1181,8 +1626,8 @@
       chatMessagesContainer.innerHTML = `
         <div class="welcome-shell">
           <div class="welcome-orb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></svg></div>
-          <h2>Think deeper.<br>Verify every answer.</h2>
-          <p>Ask a complex question, search the live web, or attach documents. SuperAI keeps the useful context and shows the evidence behind document answers.</p>
+          <h2>What can I help<br>you explore?</h2>
+          <p>Ask a question, work with your documents, or research the live web. SuperAI reasons through the task and keeps evidence close at hand.</p>
           <div class="suggestion-grid">
             <button class="suggestion-card" onclick="useSuggestion('Compare the key findings across my uploaded documents')"><span>Compare documents</span><strong>Find agreements, differences, and important details</strong></button>
             <button class="suggestion-card" onclick="useSuggestion('Search the web for the latest developments in AI agents and summarize them with sources')"><span>Research the web</span><strong>Get a current, source-grounded briefing</strong></button>
@@ -1682,6 +2127,7 @@
     }
     
     // Default form inputs render and start loader
+    restoreSidebarPreference();
     switchMode('chain');
     initChat();
   </script>
